@@ -2,14 +2,12 @@
 set -e
 
 echo "🦀 Building Rust and regenerating C header..."
-cd rust_core
+cd rust
 cargo build
 cd ..
 
 echo "🎯 Regenerating Dart FFI bindings..."
-cd dart_core
 dart run ffigen --config ffigen.yaml
-cd ..
 
 echo "✅ Done! Bindings regenerated."
 echo ""

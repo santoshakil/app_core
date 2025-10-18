@@ -13,7 +13,7 @@ EXTERNAL SOURCES:
     :path: Flutter
 
 SPEC CHECKSUMS:
-  app_core: faf6aab3fda64a94b835a908a8430473d9bb828c
+  app_core: b08dd7e844a3c5876c6f5da740c38c192d75195a
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
 
 PODFILE CHECKSUM: 3c63482e143d1b91d2d2560aee9fb04ecc74ac7e

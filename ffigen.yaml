@@ -6,9 +6,9 @@ description: |
 output: "lib/app_core_bindings_generated.dart"
 headers:
   entry-points:
-    - "src/rust_core.h"
+    - "rust/bindings.h"
   include-directives:
-    - "src/rust_core.h"
+    - "rust/bindings.h"
 
 preamble: |
   // ignore_for_file: always_specify_types

@@ -18,6 +18,7 @@ A complete, ready-to-use template for building high-performance Flutter applicat
 - 🚀 **Production-ready**: Based on real production apps handling millions of users
 - 🛠️ **Zero config**: Cargokit handles all platforms automatically
 - 📦 **Complete**: Memory management, async operations, comprehensive examples
+- 🎯 **Pub-ready**: Standard Flutter plugin structure, ready to publish
 
 ## Features
 
@@ -30,6 +31,7 @@ A complete, ready-to-use template for building high-performance Flutter applicat
 - ✅ Working example app demonstrating all features
 - ✅ Helper scripts for development workflow
 - ✅ Comprehensive tests
+- ✅ Easy package renaming with automated script
 
 ## Quick Start
 
@@ -63,7 +65,7 @@ cd app_core
 ```yaml
 dependencies:
   app_core:
-    path: ./app_core/dart_core
+    path: ./app_core
 ```
 
 **3. Get dependencies**
@@ -108,7 +110,11 @@ flutter run
 
 ```
 app_core/
-├── rust_core/              # Rust library
+├── lib/                    # Dart code
+│   ├── app_core.dart      # Main API
+│   └── src/               # Extensions, platform loader
+│
+├── rust/                   # Rust library
 │   ├── src/
 │   │   ├── ffi/           # FFI utilities (memory, types, runtime)
 │   │   ├── examples/      # Example FFI functions
@@ -117,35 +123,37 @@ app_core/
 │   ├── cbindgen.toml      # C header generation config
 │   └── build.rs           # Auto-generates C header
 │
-├── dart_core/              # Flutter FFI plugin
-│   ├── lib/
-│   │   ├── app_core.dart  # Main API
-│   │   └── src/           # Extensions, platform loader
-│   ├── cargokit/          # Cross-platform Rust builds
-│   ├── android/           # Gradle + Cargokit
-│   ├── ios/               # CocoaPods + Cargokit
-│   ├── macos/             # CocoaPods + Cargokit
-│   ├── linux/             # CMake + Cargokit
-│   ├── windows/           # CMake + Cargokit
-│   └── ffigen.yaml        # Dart binding generation config
+├── cargokit/              # Cross-platform Rust builds
+├── android/               # Gradle + Cargokit
+├── ios/                   # CocoaPods + Cargokit
+├── macos/                 # CocoaPods + Cargokit
+├── linux/                 # CMake + Cargokit
+├── windows/               # CMake + Cargokit
+├── test/                  # Dart tests
 │
-├── example/                # Demo app
+├── example/               # Demo app
 │   └── lib/main.dart
 │
 ├── scripts/
 │   ├── regen_bindings.sh  # Rebuild + regenerate bindings
-│   └── test_all.sh        # Run all tests
+│   ├── test_all.sh        # Run all tests
+│   └── rename_package.sh  # Rename package to your own name
+│
+├── pubspec.yaml           # Flutter package config
+├── ffigen.yaml            # Dart binding generation config
 │
 └── docs/
     └── CREATING_YOUR_OWN.md  # Tutorial: Build your own FFI plugin
 ```
+
+This is a standard Flutter plugin structure, ready for pub.dev publishing.
 
 ## Adding Custom Functions
 
 ### 1. Write Rust Code
 
 ```rust
-// rust_core/src/examples/my_feature.rs
+// rust/src/examples/my_feature.rs
 use std::ffi::c_char;
 use crate::ffi::{CstrToRust, RustToCstr};
 
@@ -156,7 +164,7 @@ pub extern "C" fn greet_user(name: *const c_char) -> *mut c_char {
 }
 ```
 
-Add to `rust_core/src/examples/mod.rs`:
+Add to `rust/src/examples/mod.rs`:
 ```rust
 pub mod my_feature;
 ```
@@ -329,7 +337,7 @@ The example app demonstrates:
 
 ```bash
 # Add Rust function
-vim rust_core/src/examples/my_feature.rs
+vim rust/src/examples/my_feature.rs
 
 # Regenerate bindings
 ./scripts/regen_bindings.sh
@@ -343,57 +351,74 @@ cd example && flutter run
 
 ## Customizing the Template
 
-### Rename Library
+### Quick Rename with Script
+
+The easiest way to rename this package:
+
+```bash
+./scripts/rename_package.sh my_awesome_package MyAwesomePackage my_awesome_core
+```
+
+This automatically updates:
+- Rust package name in `Cargo.toml`
+- All platform configurations (Android, iOS, macOS, Linux, Windows)
+- Dart package references
+- Library loader
+- Example app
+
+### Manual Rename
+
+If you prefer to rename manually:
 
 **1. Update Rust:**
 ```toml
-# rust_core/Cargo.toml
+# rust/Cargo.toml
 [package]
 name = "my_core"
 ```
 
 **2. Update platform configs:**
 ```gradle
-// dart_core/android/build.gradle
+// android/build.gradle
 cargokit {
     libname = "my_core"
 }
 ```
 
 ```ruby
-# dart_core/ios/app_core.podspec (and macos/)
-:script => 'sh "$PODS_TARGET_SRCROOT/../cargokit/build_pod.sh" ../../rust_core my_core',
+# ios/app_core.podspec (and macos/)
+:script => 'sh "$PODS_TARGET_SRCROOT/../cargokit/build_pod.sh" ../rust my_core',
 :output_files => ["${BUILT_PRODUCTS_DIR}/libmy_core.a"],
 ```
 
 ```cmake
-# dart_core/linux/CMakeLists.txt (and windows/)
-apply_cargokit(${PLUGIN_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/../../rust_core my_core)
+# linux/CMakeLists.txt (and windows/)
+apply_cargokit(${PLUGIN_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/../rust my_core)
 ```
 
 ```dart
-// dart_core/lib/src/platform_loader.dart
+// lib/src/platform_loader.dart
 const String _libName = 'my_core';
 ```
 
 **3. Rebuild:**
 ```bash
-cd rust_core && cargo build
-cd ../dart_core && dart run ffigen
+cd rust && cargo build
+dart run ffigen
 ```
 
 ### Add Dependencies
 
 **Rust:**
 ```toml
-# rust_core/Cargo.toml
+# rust/Cargo.toml
 [dependencies]
 reqwest = { version = "0.11", features = ["json"] }
 ```
 
 **Dart:**
 ```yaml
-# dart_core/pubspec.yaml
+# pubspec.yaml
 dependencies:
   http: ^1.0.0
 ```
@@ -402,10 +427,10 @@ dependencies:
 
 ```bash
 # Rust tests
-cd rust_core && cargo test
+cd rust && cargo test
 
 # Dart tests
-cd dart_core && flutter test
+flutter test
 
 # Run all tests
 ./scripts/test_all.sh

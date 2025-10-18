@@ -15,7 +15,7 @@ Production-ready Flutter FFI plugin with Rust backend.
 
   s.script_phase = {
     :name => 'Build Rust library',
-    :script => 'sh "$PODS_TARGET_SRCROOT/../cargokit/build_pod.sh" ../../rust_core rust_core',
+    :script => 'sh "$PODS_TARGET_SRCROOT/../cargokit/build_pod.sh" ../rust rust_core',
     :execution_position => :before_compile,
     :input_files => ['${BUILT_PRODUCTS_DIR}/cargokit_phony'],
     :output_files => ["${BUILT_PRODUCTS_DIR}/librust_core.a"],

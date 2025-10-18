@@ -48,6 +48,6 @@ android {
 apply from: "../cargokit/gradle/plugin.gradle"
 
 cargokit {
-    manifestDir = "../../rust_core"
+    manifestDir = "../rust"
     libname = "rust_core"
 }

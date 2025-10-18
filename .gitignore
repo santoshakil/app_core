@@ -1,15 +1,20 @@
 # Rust
-rust_core/target/
-rust_core/Cargo.lock
+rust/target/
+rust/Cargo.lock
 
-# Dart/Flutter
-dart_core/.dart_tool/
-dart_core/.flutter-plugins
-dart_core/.flutter-plugins-dependencies
-dart_core/.packages
-dart_core/pubspec.lock
-dart_core/build/
-dart_core/android/.cxx/
+# Dart/Flutter (root level)
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+pubspec.lock
+build/
+android/.cxx/
+android/.gradle/
+android/.kotlin/
+android/local.properties
+android/*.iml
+android/app/*.iml
 
 # Example app
 example/.dart_tool/
@@ -37,8 +42,12 @@ example/android/app/*.iml
 .DS_Store
 
 # Generated files
-dart_core/lib/app_core_bindings_generated.dart
-dart_core/src/rust_core.h
+lib/app_core_bindings_generated.dart
+ios/Classes/app_core.c
+macos/Classes/app_core.c
 
 # Setup instructions (for owner only)
 SETUP.md
+
+# Social media assets
+social/

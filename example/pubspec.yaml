@@ -10,13 +10,15 @@ dependencies:
   flutter:
     sdk: flutter
   app_core:
-    path: ../dart_core
+    path: ..
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  integration_test:
+    sdk: flutter
 
 flutter:
   uses-material-design: true

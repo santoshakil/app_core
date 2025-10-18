@@ -68,20 +68,30 @@ This guide teaches you how to create a production-ready Flutter FFI plugin with 
 
 ```
 my_plugin/
-├── rust_core/              # Rust library
+├── rust/                  # Rust library
 │   ├── src/
-│   │   ├── lib.rs         # Library entry point
-│   │   └── ffi/           # FFI-specific code
-│   ├── Cargo.toml         # Rust dependencies
-│   ├── cbindgen.toml      # C header config
-│   └── build.rs           # Build script
+│   │   ├── lib.rs        # Library entry point
+│   │   └── ffi/          # FFI-specific code
+│   ├── Cargo.toml        # Rust dependencies
+│   ├── cbindgen.toml     # C header config
+│   └── build.rs          # Build script
 │
-└── dart_core/              # Flutter plugin
-    ├── lib/
-    │   └── my_plugin.dart # Dart API
-    ├── pubspec.yaml       # Dart dependencies
-    ├── ffigen.yaml        # Binding config
-    └── <platform_dirs>/   # Android, iOS, etc.
+├── lib/                   # Dart code
+│   └── my_plugin.dart    # Dart API
+│
+├── src/                   # Generated C headers
+│   └── my_plugin.h       # Auto-generated
+│
+├── android/               # Android platform
+├── ios/                   # iOS platform
+├── macos/                 # macOS platform
+├── linux/                 # Linux platform
+├── windows/               # Windows platform
+│
+├── test/                  # Dart tests
+├── pubspec.yaml          # Dart dependencies
+├── ffigen.yaml           # Binding config
+└── scripts/              # Build scripts
 ```
 
 ### Build Pipeline
@@ -91,9 +101,9 @@ my_plugin/
    ↓
 2. cargo build → triggers build.rs
    ↓
-3. build.rs → runs cbindgen → generates C header
+3. build.rs → runs cbindgen → generates src/my_plugin.h
    ↓
-4. dart run ffigen → reads C header → generates Dart bindings
+4. dart run ffigen → reads src/my_plugin.h → generates lib/my_plugin_bindings_generated.dart
    ↓
 5. flutter build → Cargokit compiles Rust → links to app
 ```
@@ -107,15 +117,16 @@ my_plugin/
 #### 1.1 Create Rust Library
 
 ```bash
-cargo new --lib rust_core
-cd rust_core
+mkdir rust
+cd rust
+cargo init --lib
 ```
 
 #### 1.2 Configure `Cargo.toml`
 
 ```toml
 [package]
-name = "rust_core"
+name = "my_plugin"
 version = "0.1.0"
 edition = "2021"
 
@@ -306,7 +317,7 @@ fn main() {
 
     cbindgen::generate(&crate_dir)
         .expect("Unable to generate bindings")
-        .write_to_file("../dart_core/src/rust_core.h");
+        .write_to_file("../src/my_plugin.h");
 
     // Rebuild if source changes
     println!("cargo:rerun-if-changed=src/");
@@ -326,7 +337,7 @@ language = "C"
 braces = "SameLine"
 tab_width = 4
 documentation = true
-include_guard = "RUST_CORE_H"
+include_guard = "MY_PLUGIN_H"
 include_version = true
 
 [export]
@@ -341,7 +352,7 @@ include = []
 
 ```bash
 cargo build
-# Check: ../dart_core/src/rust_core.h should be created
+# Check: ../src/my_plugin.h should be created
 
 cargo test
 ```
@@ -353,16 +364,18 @@ cargo test
 #### 2.1 Create Flutter Plugin
 
 ```bash
-flutter create --template=plugin_ffi --platforms=android,ios,macos,linux,windows dart_core
-cd dart_core
+# From project root
+flutter create --template=plugin_ffi --platforms=android,ios,macos,linux,windows .
 ```
+
+This creates the Flutter plugin structure at the root level alongside your `rust/` directory.
 
 #### 2.2 Configure Dependencies
 
 **`pubspec.yaml`**:
 
 ```yaml
-name: dart_core
+name: my_plugin
 description: My FFI plugin
 version: 0.1.0
 publish_to: 'none'
@@ -402,15 +415,15 @@ flutter:
 **`ffigen.yaml`**:
 
 ```yaml
-name: DartCoreBindings
+name: MyPluginBindings
 description: |
-  Bindings for rust_core library.
-output: "lib/dart_core_bindings_generated.dart"
+  Bindings for my_plugin library.
+output: "lib/my_plugin_bindings_generated.dart"
 headers:
   entry-points:
-    - "src/rust_core.h"
+    - "src/my_plugin.h"
   include-directives:
-    - "src/rust_core.h"
+    - "src/my_plugin.h"
 
 preamble: |
   // ignore_for_file: always_specify_types
@@ -426,12 +439,12 @@ comments:
 
 ```bash
 # First, ensure C header exists
-ls src/rust_core.h
+ls src/my_plugin.h
 
 # Generate Dart bindings
 dart run ffigen --config ffigen.yaml
 
-# Check: lib/dart_core_bindings_generated.dart created
+# Check: lib/my_plugin_bindings_generated.dart created
 ```
 
 #### 2.5 Create Platform Loader
@@ -442,8 +455,8 @@ dart run ffigen --config ffigen.yaml
 import 'dart:ffi';
 import 'dart:io';
 
-const String _pluginName = 'dart_core';  // Flutter plugin name (from podspec s.name)
-const String _libName = 'rust_core';     // Rust library name (from Cargo.toml)
+const String _pluginName = 'my_plugin';  // Flutter plugin name (from podspec s.name)
+const String _libName = 'my_plugin';     // Rust library name (from Cargo.toml)
 
 DynamicLibrary loadLibrary() {
   if (Platform.isMacOS || Platform.isIOS) {
@@ -472,7 +485,7 @@ DynamicLibrary loadLibrary() {
 ```dart
 import 'dart:ffi';
 import 'package:ffi/ffi.dart';
-import '../dart_core.dart';
+import '../my_plugin.dart';
 
 extension StringFfi on String {
   // Converts Dart String → C string (malloc)
@@ -512,31 +525,31 @@ malloc.free(inputPtr);
 
 #### 2.7 Create Main API
 
-**`lib/dart_core.dart`**:
+**`lib/my_plugin.dart`**:
 
 ```dart
-library dart_core;
+library my_plugin;
 
 import 'dart:ffi';
 import 'package:flutter/foundation.dart';
 
-import 'dart_core_bindings_generated.dart';
+import 'my_plugin_bindings_generated.dart';
 import 'src/ffi_extensions.dart';
 import 'src/platform_loader.dart';
 
-export 'dart_core_bindings_generated.dart';
+export 'my_plugin_bindings_generated.dart';
 export 'src/ffi_extensions.dart';
 
 final DynamicLibrary _dylib = loadLibrary();
-final DartCoreBindings bindings = DartCoreBindings(_dylib);
+final MyPluginBindings bindings = MyPluginBindings(_dylib);
 
-void initDartCore() {
-  debugPrint('DartCore initialized');
+void initMyPlugin() {
+  debugPrint('MyPlugin initialized');
 }
 
 // High-level API
-class DartCore {
-  DartCore._();
+class MyPlugin {
+  MyPlugin._();
 
   static int sum(int a, int b) {
     return bindings.sum(a, b);
@@ -570,14 +583,14 @@ class DartCore {
 
 **Option A: During Development (Quick)**
 ```bash
-cd dart_core
+# From project root
 git clone https://github.com/irondash/cargokit.git
 ```
 
 **Option B: For Publishing (Recommended)**
 ```bash
-# From your project root (not dart_core)
-git subtree add --prefix dart_core/cargokit \
+# From project root
+git subtree add --prefix cargokit \
   https://github.com/irondash/cargokit.git main --squash
 ```
 
@@ -594,7 +607,7 @@ Use Option A for quick experimentation. Use Option B when creating a template or
 **`android/build.gradle`**:
 
 ```gradle
-group = "com.example.dart_core"
+group = "com.example.my_plugin"
 version = "1.0"
 
 buildscript {
@@ -618,7 +631,7 @@ apply plugin: "com.android.library"
 
 android {
     if (project.android.hasProperty("namespace")) {
-        namespace = "com.example.dart_core"
+        namespace = "com.example.my_plugin"
     }
 
     compileSdk = 34
@@ -638,18 +651,18 @@ android {
 apply from: "../cargokit/gradle/plugin.gradle"
 
 cargokit {
-    manifestDir = "../../rust_core"  // Path to Cargo.toml
-    libname = "rust_core"             // Library name
+    manifestDir = "../rust"  // Path to Cargo.toml
+    libname = "my_plugin"    // Library name
 }
 ```
 
 #### 3.3 iOS Setup
 
-**`ios/dart_core.podspec`**:
+**`ios/my_plugin.podspec`**:
 
 ```ruby
 Pod::Spec.new do |s|
-  s.name             = 'dart_core'
+  s.name             = 'my_plugin'
   s.version          = '0.1.0'
   s.summary          = 'My FFI plugin'
   s.homepage         = 'https://example.com'
@@ -663,23 +676,23 @@ Pod::Spec.new do |s|
   # Cargokit build script
   s.script_phase = {
     :name => 'Build Rust library',
-    :script => 'sh "$PODS_TARGET_SRCROOT/../cargokit/build_pod.sh" ../../rust_core rust_core',
+    :script => 'sh "$PODS_TARGET_SRCROOT/../cargokit/build_pod.sh" ../rust my_plugin',
     :execution_position => :before_compile,
     :input_files => ['${BUILT_PRODUCTS_DIR}/cargokit_phony'],
-    :output_files => ["${BUILT_PRODUCTS_DIR}/librust_core.a"],
+    :output_files => ["${BUILT_PRODUCTS_DIR}/libmy_plugin.a"],
   }
 
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
     'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386',
-    'OTHER_LDFLAGS' => '-force_load ${BUILT_PRODUCTS_DIR}/librust_core.a',
+    'OTHER_LDFLAGS' => '-force_load ${BUILT_PRODUCTS_DIR}/libmy_plugin.a',
   }
 end
 ```
 
-**Create `ios/Classes/dart_core.c`** (empty file):
+**Create `ios/Classes/my_plugin.c`** (empty file):
 ```bash
-touch ios/Classes/dart_core.c
+touch ios/Classes/my_plugin.c
 ```
 
 This empty `.c` file is required by CocoaPods for the `s.source_files` pattern. The actual FFI symbols come from the Rust static library via `-force_load`.
@@ -687,10 +700,10 @@ This empty `.c` file is required by CocoaPods for the `s.source_files` pattern. 
 #### 3.4 macOS Setup
 
 Same as iOS:
-1. Copy the podspec to `macos/dart_core.podspec`
+1. Copy the podspec to `macos/my_plugin.podspec`
 2. Change `s.platform = :osx, '10.14'`
 3. Remove the `EXCLUDED_ARCHS` line (macOS doesn't need it)
-4. Create `macos/Classes/dart_core.c` (empty file)
+4. Create `macos/Classes/my_plugin.c` (empty file)
 
 #### 3.5 Linux Setup
 
@@ -698,13 +711,13 @@ Same as iOS:
 
 ```cmake
 cmake_minimum_required(VERSION 3.10)
-set(PROJECT_NAME "dart_core")
+set(PROJECT_NAME "my_plugin")
 project(${PROJECT_NAME} LANGUAGES CXX)
 
-set(PLUGIN_NAME "dart_core_plugin")
+set(PLUGIN_NAME "my_plugin_plugin")
 
 add_library(${PLUGIN_NAME} SHARED
-  "../src/rust_core.c"
+  "../src/my_plugin.c"
 )
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter)
@@ -712,7 +725,7 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE PkgConfig::GTK)
 
 # Cargokit integration
 include(../cargokit/cmake/cargokit.cmake)
-apply_cargokit(${PLUGIN_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/../../rust_core rust_core)
+apply_cargokit(${PLUGIN_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/../rust my_plugin)
 ```
 
 #### 3.6 Windows Setup
@@ -762,7 +775,7 @@ valgrind --leak-check=full flutter test
 
 **AddressSanitizer:**
 ```bash
-# In rust_core/Cargo.toml
+# In rust/Cargo.toml
 [profile.dev]
 opt-level = 0
 debug = true
@@ -792,7 +805,7 @@ tokio::spawn(async move {
 
 **Step 1: Add dependency**
 ```toml
-# rust_core/Cargo.toml
+# rust/Cargo.toml
 [dependencies]
 irondash_dart_ffi = "0.2"
 num_cpus = "1"
@@ -800,7 +813,7 @@ num_cpus = "1"
 
 **Step 2: Initialize Dart API (once)**
 ```rust
-// rust_core/src/ffi/dart_port.rs
+// rust/src/ffi/dart_port.rs
 use std::sync::Once;
 
 static INIT: Once = Once::new();
@@ -816,13 +829,13 @@ pub extern "C" fn init_dart_api(data: *mut std::ffi::c_void) -> bool {
 
 **Step 3: Configure parallel runtime**
 ```rust
-// rust_core/src/ffi/runtime.rs
+// rust/src/ffi/runtime.rs
 use tokio::runtime::Runtime;
 
 static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
     tokio::runtime::Builder::new_multi_thread()
         .worker_threads(num_cpus::get())  // Use all CPU cores
-        .thread_name("app_core")
+        .thread_name("my_plugin")
         .enable_all()
         .build()
         .expect("Failed to create Tokio runtime")
@@ -887,8 +900,8 @@ Future<T> ffiAsync<T>(
 
 **Step 6: Use in your API**
 ```dart
-// lib/app_core.dart
-class AppCore {
+// lib/my_plugin.dart
+class MyPlugin {
   static Future<String> fetchDataAsync(String url) {
     return ffiAsync(
       (port) => bindings.fetch_data_async(url.toPtr(), port),
@@ -901,12 +914,12 @@ class AppCore {
 **Step 7: Call with await**
 ```dart
 // Clean and simple!
-final result = await AppCore.fetchDataAsync('https://api.example.com');
+final result = await MyPlugin.fetchDataAsync('https://api.example.com');
 print('Got: $result');
 
 // With error handling
 try {
-  final data = await AppCore.processAsync('input');
+  final data = await MyPlugin.processAsync('input');
 } catch (e) {
   print('Error: $e');
 }
@@ -928,9 +941,9 @@ Multiple async calls run **truly in parallel** across CPU cores:
 ```dart
 // All 3 run simultaneously on different cores
 await Future.wait([
-  AppCore.fetchDataAsync('url1'),  // Core 1
-  AppCore.fetchDataAsync('url2'),  // Core 2
-  AppCore.fetchDataAsync('url3'),  // Core 3
+  MyPlugin.fetchDataAsync('url1'),  // Core 1
+  MyPlugin.fetchDataAsync('url2'),  // Core 2
+  MyPlugin.fetchDataAsync('url3'),  // Core 3
 ]);
 ```
 
@@ -959,7 +972,7 @@ For CPU-intensive blocking operations, use Dart isolates to prevent UI freezing.
 ### Step 1: Create blocking Rust function
 
 ```rust
-// rust_core/src/examples/blocking.rs
+// rust/src/examples/blocking.rs
 #[no_mangle]
 pub extern "C" fn fibonacci(n: u64) -> u64 {
     // Blocking, recursive, CPU-intensive
@@ -995,11 +1008,11 @@ Future<R> ffiCompute<M, R>(R Function(M) callback, M message) {
 }
 ```
 
-### Step 3: Wrap in AppCore
+### Step 3: Wrap in MyPlugin
 
 ```dart
-// lib/app_core.dart
-class AppCore {
+// lib/my_plugin.dart
+class MyPlugin {
   static Future<int> fibonacci(int n) {
     return ffiCompute(_fibonacciWorker, n);
   }
@@ -1022,14 +1035,14 @@ class AppCore {
 
 ```dart
 // UI stays responsive - runs on separate isolate
-final result = await AppCore.fibonacci(40);
+final result = await MyPlugin.fibonacci(40);
 print('Result: $result');
 
 // Multiple computations in parallel
 await Future.wait([
-  AppCore.fibonacci(35),
-  AppCore.fibonacci(36),
-  AppCore.heavyComputation(1000000),
+  MyPlugin.fibonacci(35),
+  MyPlugin.fibonacci(36),
+  MyPlugin.heavyComputation(1000000),
 ]);
 ```
 
@@ -1048,7 +1061,7 @@ await Future.wait([
 int result = bindings.fibonacci(40);  // UI freezes!
 
 // ✅ GOOD - runs on isolate
-int result = await AppCore.fibonacci(40);  // UI responsive!
+int result = await MyPlugin.fibonacci(40);  // UI responsive!
 ```
 
 ### Benefits
