@@ -17,13 +17,11 @@ class RustPerformanceDataSource {
 
     try {
       final rustQuicksort = _lib.lookupFunction<
-          Pointer<Utf8> Function(Pointer<Int32>, IntPtr),
-          Pointer<Utf8> Function(Pointer<Int32>, int)>('rust_quicksort');
+          Pointer<Char> Function(Pointer<Int32>, IntPtr),
+          Pointer<Char> Function(Pointer<Int32>, int)>('rust_quicksort');
 
       final resultPtr = rustQuicksort(ptr, data.length);
-      final result = resultPtr.toDartString();
-      calloc.free(resultPtr);
-      return result;
+      return resultPtr.toStr(); // Uses app_core's extension which frees memory
     } finally {
       calloc.free(ptr);
     }
@@ -32,91 +30,67 @@ class RustPerformanceDataSource {
   /// Generate prime numbers
   String generatePrimes(int limit) {
     final rustGeneratePrimes = _lib.lookupFunction<
-        Pointer<Utf8> Function(Uint32),
-        Pointer<Utf8> Function(int)>('rust_generate_primes');
+        Pointer<Char> Function(Uint32),
+        Pointer<Char> Function(int)>('rust_generate_primes');
 
     final resultPtr = rustGeneratePrimes(limit);
-    final result = resultPtr.toDartString();
-    calloc.free(resultPtr);
-    return result;
+    return resultPtr.toStr();
   }
 
   /// Calculate SHA-256 hash
   String sha256Hash(String text) {
-    final textPtr = text.toNativeUtf8();
+    final textPtr = text.toPtr();
 
-    try {
-      final rustSha256 = _lib.lookupFunction<
-          Pointer<Utf8> Function(Pointer<Utf8>),
-          Pointer<Utf8> Function(Pointer<Utf8>)>('rust_sha256');
+    final rustSha256 = _lib.lookupFunction<
+        Pointer<Char> Function(Pointer<Char>),
+        Pointer<Char> Function(Pointer<Char>)>('rust_sha256');
 
-      final resultPtr = rustSha256(textPtr);
-      final result = resultPtr.toDartString();
-      calloc.free(resultPtr);
-      return result;
-    } finally {
-      calloc.free(textPtr);
-    }
+    final resultPtr = rustSha256(textPtr);
+    return resultPtr.toStr();
   }
 
   /// Generate Fibonacci sequence
   String fibonacciSequence(int n) {
     final rustFibonacci = _lib.lookupFunction<
-        Pointer<Utf8> Function(Uint32),
-        Pointer<Utf8> Function(int)>('rust_fibonacci_sequence');
+        Pointer<Char> Function(Uint32),
+        Pointer<Char> Function(int)>('rust_fibonacci_sequence');
 
     final resultPtr = rustFibonacci(n);
-    final result = resultPtr.toDartString();
-    calloc.free(resultPtr);
-    return result;
+    return resultPtr.toStr();
   }
 
   /// Matrix multiplication
   String matrixMultiply(int size) {
     final rustMatrixMultiply = _lib.lookupFunction<
-        Pointer<Utf8> Function(IntPtr),
-        Pointer<Utf8> Function(int)>('rust_matrix_multiply');
+        Pointer<Char> Function(IntPtr),
+        Pointer<Char> Function(int)>('rust_matrix_multiply');
 
     final resultPtr = rustMatrixMultiply(size);
-    final result = resultPtr.toDartString();
-    calloc.free(resultPtr);
-    return result;
+    return resultPtr.toStr();
   }
 
   /// Parse and manipulate JSON
   String parseJson(String jsonStr) {
-    final jsonPtr = jsonStr.toNativeUtf8();
+    final jsonPtr = jsonStr.toPtr();
 
-    try {
-      final rustJsonParse = _lib.lookupFunction<
-          Pointer<Utf8> Function(Pointer<Utf8>),
-          Pointer<Utf8> Function(Pointer<Utf8>)>('rust_json_parse');
+    final rustJsonParse = _lib.lookupFunction<
+        Pointer<Char> Function(Pointer<Char>),
+        Pointer<Char> Function(Pointer<Char>)>('rust_json_parse');
 
-      final resultPtr = rustJsonParse(jsonPtr);
-      final result = resultPtr.toDartString();
-      calloc.free(resultPtr);
-      return result;
-    } finally {
-      calloc.free(jsonPtr);
-    }
+    final resultPtr = rustJsonParse(jsonPtr);
+    return resultPtr.toStr();
   }
 
   /// Text analysis
   String analyzeText(String text) {
-    final textPtr = text.toNativeUtf8();
+    final textPtr = text.toPtr();
 
-    try {
-      final rustTextAnalysis = _lib.lookupFunction<
-          Pointer<Utf8> Function(Pointer<Utf8>),
-          Pointer<Utf8> Function(Pointer<Utf8>)>('rust_text_analysis');
+    final rustTextAnalysis = _lib.lookupFunction<
+        Pointer<Char> Function(Pointer<Char>),
+        Pointer<Char> Function(Pointer<Char>)>('rust_text_analysis');
 
-      final resultPtr = rustTextAnalysis(textPtr);
-      final result = resultPtr.toDartString();
-      calloc.free(resultPtr);
-      return result;
-    } finally {
-      calloc.free(textPtr);
-    }
+    final resultPtr = rustTextAnalysis(textPtr);
+    return resultPtr.toStr();
   }
 
   /// Calculate Pi using Monte Carlo method
@@ -129,19 +103,13 @@ class RustPerformanceDataSource {
 
   /// Run-length encoding compression
   String compressRle(String input) {
-    final inputPtr = input.toNativeUtf8();
+    final inputPtr = input.toPtr();
 
-    try {
-      final rustCompressRle = _lib.lookupFunction<
-          Pointer<Utf8> Function(Pointer<Utf8>),
-          Pointer<Utf8> Function(Pointer<Utf8>)>('rust_compress_rle');
+    final rustCompressRle = _lib.lookupFunction<
+        Pointer<Char> Function(Pointer<Char>),
+        Pointer<Char> Function(Pointer<Char>)>('rust_compress_rle');
 
-      final resultPtr = rustCompressRle(inputPtr);
-      final result = resultPtr.toDartString();
-      calloc.free(resultPtr);
-      return result;
-    } finally {
-      calloc.free(inputPtr);
-    }
+    final resultPtr = rustCompressRle(inputPtr);
+    return resultPtr.toStr();
   }
 }

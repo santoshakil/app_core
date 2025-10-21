@@ -1,6 +1,6 @@
 import 'dart:ffi';
-import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:app_core/src/platform_loader.dart';
 import '../../data/datasources/dart_performance_datasource.dart';
 import '../../data/datasources/rust_performance_datasource.dart';
 import '../../data/repositories/benchmark_repository_impl.dart';
@@ -8,26 +8,10 @@ import '../../domain/repositories/benchmark_repository.dart';
 import '../../domain/usecases/run_benchmark.dart';
 
 /// Provider for DynamicLibrary
+/// Uses the same library loader as app_core
 final dynamicLibraryProvider = Provider<DynamicLibrary>((ref) {
-  const base = 'rust_core';
-  final path = Platform.isLinux
-      ? 'lib$base.so'
-      : Platform.isAndroid
-          ? 'lib$base.so'
-          : Platform.isMacOS
-              ? 'lib$base.dylib'
-              : Platform.isIOS
-                  ? 'rust_core.framework/rust_core'
-                  : Platform.isWindows
-                      ? '$base.dll'
-                      : throw UnsupportedError('Unsupported platform');
-
-  try {
-    return DynamicLibrary.open(path);
-  } catch (e) {
-    // Try executable directory
-    return DynamicLibrary.executable();
-  }
+  // Use app_core's platform-specific library loader
+  return loadLibrary();
 });
 
 /// Provider for Dart data source
