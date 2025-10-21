@@ -36,6 +36,26 @@ uint64_t process_large_data(const char *data, uint32_t repeat);
 
 bool simulate_slow_operation(uint32_t seconds);
 
+char *rust_quicksort(const int32_t *data_ptr, uintptr_t len);
+
+char *rust_bubble_sort(const int32_t *data_ptr, uintptr_t len);
+
+char *rust_sha256(const char *input);
+
+char *rust_generate_primes(uint32_t limit);
+
+char *rust_fibonacci_sequence(uint32_t n);
+
+char *rust_matrix_multiply(uintptr_t size);
+
+char *rust_json_parse(const char *json_str);
+
+char *rust_text_analysis(const char *text);
+
+double rust_calculate_pi(uint32_t iterations);
+
+char *rust_compress_rle(const char *input);
+
 bool init_dart_api(void *data);
 
 void free_c_string(char *s);
